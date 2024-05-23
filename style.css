@@ -1,0 +1,39 @@
+body {
+    margin: 0;
+    background-color: #51564e;
+    display: grid;
+    grid-template-columns: 4fr 1fr;
+    color: white;
+    font-family: consolas;
+}
+
+#canvas-div {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#controls-div {
+    padding: 5px;
+}
+
+#canvas {
+    width: 1512px;
+    height: 828px;
+    background-color: #8e9588;
+    border: 1px solid white;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 0;
+}
+
+textarea {
+    overflow-x: scroll;
+}
+
+p {
+    text-align: center;
+    margin-top: 0;
+}

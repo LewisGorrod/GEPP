@@ -1,0 +1,173 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <div id="canvas-div">
+            <canvas id="canvas" width=1512 height=828></canvas>
+        </div>
+        <div id="controls-div">
+            <h1>GlitchEdit++</h1>
+            <p>A web-based level editor for N++.</p>
+            <fieldset>
+                <legend>Input</legend>
+                <input type="file" id="fileInput">
+                <br><label for="createNewButton">or </label>
+                <input type="button" name="createNewButton" id="createNewButton" value="Create new" onclick="createNew()">
+                <br><label for="levelNameInput">Level name: </label>
+                <input type="text" name="levelNameInput" id="levelNameInput" value="Untitled-1">
+                <br><label for="gameModeSelect">Game mode:</label>
+                <select name="gameModeSelect" id="gameModeSelect">
+                    <option value="00">solo</option>
+                    <option value="01">coop</option>
+                    <option value="02">race</option>
+                    <option value="04" selected>unset</option>
+                </select>
+                <br><label id="fileSizeLabel">File size: unknown</label>
+            </fieldset>
+            <fieldset>
+                <legend>Editor</legend>
+                <!-- enable grid -->
+                <input type="checkbox" id="gridCheckbox" checked onclick="updateCanvas()">Grid</input>
+                <!-- grid size -->
+                <br><label>Size: </label>
+                <input type="radio" id="gridSizeRadio1" name="gridSizeRadio" value="full" checked onclick="updateCanvas()">
+                <label for="gridSizeRadio">Full</label>
+                <input type="radio" id="gridSizeRadio2" name="gridSizeRadio" value="half" onclick="updateCanvas()">
+                <label for="gridSizeRadio">Half</label>
+                <input type="radio" id="gridSizeRadio3" name="gridSizeRadio" value="quarter" onclick="updateCanvas()">
+                <label for="gridSizeRadio">Quarter</label>
+                <!-- center lines -->
+                <br><input type="checkbox" id="centerLinesCheckbox" onclick="updateCanvas()">Center lines</input>
+                <!-- door-switch lines -->
+                <br><input type="checkbox" id="showExitDoorSwitch" checked onclick="updateCanvas()">Door-switch lines</input>
+                <!-- auto-place doors -->
+                <br><input type="checkbox" id="autoDoorCheckbox">Auto-door</input>
+                <!-- auto-place switches -->
+                <br><input type="checkbox" id="autoSwitchCheckbox">Auto-switch</input>
+                
+            </fieldset>
+            <fieldset>
+                <legend>Draw</legend>
+                <!-- tile-entity mode -->
+                <label>Mode: </label>
+                <input type="radio" id="tileModeRadio" name="modeRadio"checked>
+                <label for="modeRadio">Tile</label>
+                <input type="radio" id="objectModeRadio" name="modeRadio">
+                <label for="modeRadio">Object</label>
+                <!-- tiles -->
+                <fieldset>
+                    <legend>Tile</legend>
+                    <label for="tileSelect">Tile: </label>
+                    <select name="tileSelect" id="tileSelect">
+                        <option value="01" selected>Full</option>
+                        <option value="02">Half (top)</option>
+                        <option value="03">Half (right)</option>
+                        <option value="04">Half (bottom)</option>
+                        <option value="05">Half (left)</option>
+                        <option value="08">Slope (nw)</option>
+                        <option value="09">Slope (ne)</option>
+                        <option value="07">Slope (sw)</option>
+                        <option value="06">Slope (se)</option>
+                        <option value="0c">Quarter moon (nw)</option>
+                        <option value="0d">Quarter moon (ne)</option>
+                        <option value="0b">Quarter moon (sw)</option>
+                        <option value="0a">Quarter moon (se)</option>
+                        <option value="10">Quarter pipe (nw)</option>
+                        <option value="11">Quarter pipe (ne)</option>
+                        <option value="0f">Quarter pipe (sw)</option>
+                        <option value="0e">Quarter pipe (se)</option>
+                        <option value="14">Short slope (horizontal, nw)</option>
+                        <option value="15">Short slope (horizontal, ne)</option>
+                        <option value="13">Short slope (horizontal, sw)</option>
+                        <option value="12">Short slope (horizontal, se)</option>
+                        <option value="1c">Short slope (vertical, nw)</option>
+                        <option value="1d">Short slope (vertical, ne)</option>
+                        <option value="1b">Short slope (vertical, sw)</option>
+                        <option value="1a">Short slope (vertical, se)</option>
+                        <option value="18">Raised slope (horizontal, nw)</option>
+                        <option value="19">Raised slope (horizontal, ne)</option>
+                        <option value="17">Raised slope (horizontal, sw)</option>
+                        <option value="16">Raised slope (horizontal, se)</option>
+                        <option value="20">Raised slope (vertical, nw)</option>
+                        <option value="21">Raised slope (vertical, ne)</option>
+                        <option value="1f">Raised slope (vertical, sw)</option>
+                        <option value="1e">Raised slope (vertical, se)</option>
+                    </select>
+                </fieldset>
+                <!-- entity -->
+                <fieldset>
+                    <legend>Object</legend>
+                    <label for="objectSelect">Object: </label>
+                    <select name="objectSelect" id="objectSelect">
+                        <option value="00" selected>Ninja</option>
+                        <option value="01">Mine</option>
+                        <option value="02">Gold</option>
+                        <option value="03">Exit</option>
+                        <option value="04">Exit switch</option>
+                        <option value="05">Door</option>
+                        <option value="06">Locked door</option>
+                        <option value="07">Locked door switch</option>
+                        <option value="08">Trap door</option>
+                        <option value="09">Trap door switch</option>
+                        <option value="0a">Bounce pad</option>
+                        <option value="0b">One-way platform</option>
+                        <option value="0c">Chaingun drone</option>
+                        <option value="0d">Laser drone</option>
+                        <option value="0e">Zap drone</option>
+                        <option value="0f">Chase drone</option>
+                        <option value="10">Amogus</option>
+                        <option value="11">Bounce block</option>
+                        <option value="12">Rocket</option>
+                        <option value="13">Gauss turret</option>
+                        <option value="14">Thwump</option>
+                        <option value="15">Toggle mine</option>
+                        <option value="16">Evil ninja</option>
+                        <option value="17">Laser turret</option>
+                        <option value="18">Boost pad</option>
+                        <option value="19">Deathball</option>
+                        <option value="1a">Micro drone</option>
+                        <option value="1b">Eye bat</option>
+                        <option value="1c">Shove thwump</option>
+                    </select>
+                    <!-- entity orientation -->
+                    <br><label for="objectDirectionSelect">Direction: </label>
+                    <select name="objectDirectionSelect" id="objectDirectionSelect">
+                        <option value="00" selected>East</option>
+                        <option value="01">South-east</option>
+                        <option value="02">South</option>
+                        <option value="03">South-west</option>
+                        <option value="04">West</option>
+                        <option value="05">North-west</option>
+                        <option value="06">North</option>
+                        <option value="07">North-east</option>
+                    </select>
+                    <!-- drone mode -->
+                    <br><label for="droneModeSelect">Drone mode: </label>
+                    <select name="droneModeSelect" id="droneModeSelect">
+                        <option value="00">Patrol wall (cw)</option>
+                        <option value="01">Patrol wall (ccw)</option>
+                        <option value="02"selected>Wander (cw)</option>
+                        <option value="03">Wander (ccw)</option>
+                    </select>
+                </fieldset>
+            </fieldset>
+            <fieldset>
+                <legend>Output</legend>
+                <input type="button" value="Save" onclick="downloadFile()">
+                <br><label>Warning: use files created by this tool at your own risk!</label>
+            </fieldset>
+            <fieldset>
+                <legend>Keyboard Shortcuts</legend>
+                <label>Tile/object mode: space</label>
+                <br><label>Object direction: q,w,e,a,s,d,z,c</label>
+                <br><label>Grid: g</label>
+            </fieldset>
+            <!-- <fieldset>
+                <legend>Preview</legend>
+                <textarea name="previewTextArea" id="previewTextArea" cols="47" rows="25"></textarea>
+            </fieldset> -->
+        </div>
+        <script src="script.js" type="module"></script>
+    </body>
+</html>
