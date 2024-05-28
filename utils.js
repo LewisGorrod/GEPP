@@ -1,5 +1,5 @@
 
-import {tileSize, gridWidth, quarterTileSize} from "./script.js";
+import {tileSize, quarterTileSize} from "./canvas.js";
 
 export function h2d(hex) {
     return parseInt(hex, 16);
@@ -20,6 +20,14 @@ export function h2a(hex) {
     return str;
 }
 
+export function a2h(string) {
+    let hexArray = [];
+    for (let i = 0; i < string.length; i++) {
+        hexArray.push(string.charCodeAt(i).toString(16));
+    }
+    return hexArray;
+}
+
 export function intArrayToHexArray(Uint8Array) {
 	let hexArray = [];
 	for (let i = 0; i < Uint8Array.length; i++) {
@@ -34,8 +42,8 @@ export function toGridPos(x, y) {
 }
 
 export function indexToGridPos(i) {
-    let y = Math.floor(i / gridWidth);
-    let x = i - (y * gridWidth);
+    let y = Math.floor(i / 42);
+    let x = i - (y * 42);
     return [x, y];
 }
 

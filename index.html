@@ -7,8 +7,8 @@
             <canvas id="canvas" width=1512 height=828></canvas>
         </div>
         <div id="controls-div">
-            <h1>GlitchEdit++</h1>
-            <p>A web-based level editor for N++.</p>
+            <h1>GlitchEdit++ v0.2.0</h1>
+            <p class="subheading">A web-based level editor for N++.</p>
             <fieldset>
                 <legend>Input</legend>
                 <input type="file" id="fileInput">
@@ -31,11 +31,11 @@
                 <input type="checkbox" id="gridCheckbox" checked onclick="updateCanvas()">Grid</input>
                 <!-- grid size -->
                 <br><label>Size: </label>
-                <input type="radio" id="gridSizeRadio1" name="gridSizeRadio" value="full" checked onclick="updateCanvas()">
+                <input type="radio" id="gridSizeRadioFull" name="gridSizeRadio" value="full" checked onclick="updateCanvas()">
                 <label for="gridSizeRadio">Full</label>
-                <input type="radio" id="gridSizeRadio2" name="gridSizeRadio" value="half" onclick="updateCanvas()">
+                <input type="radio" id="gridSizeRadioHalf" name="gridSizeRadio" value="half" onclick="updateCanvas()">
                 <label for="gridSizeRadio">Half</label>
-                <input type="radio" id="gridSizeRadio3" name="gridSizeRadio" value="quarter" onclick="updateCanvas()">
+                <input type="radio" id="gridSizeRadioQuarter" name="gridSizeRadio" value="quarter" onclick="updateCanvas()">
                 <label for="gridSizeRadio">Quarter</label>
                 <!-- center lines -->
                 <br><input type="checkbox" id="centerLinesCheckbox" onclick="updateCanvas()">Center lines</input>
@@ -167,6 +167,10 @@
                 <legend>Preview</legend>
                 <textarea name="previewTextArea" id="previewTextArea" cols="47" rows="25"></textarea>
             </fieldset> -->
+            <div id="footer">
+                <br><a href="version.html">Version history</a>
+                <p>Made in pure Javascript, with &#x1F49B;</p>
+            </div>
         </div>
         <script src="script.js" type="module"></script>
     </body>

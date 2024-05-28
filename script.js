@@ -1,8 +1,22 @@
 
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const rect = canvas.getBoundingClientRect();
+
+import {
+    clearCanvas,
+    drawGrid,
+    drawTiles,
+    drawObjects,
+    drawCenterLines,
+    drawDoorSwitchLines
+} from "./canvas.js";
+
 import {
     h2d,
     d2h,
     h2a,
+    a2h,
     intArrayToHexArray,
     toGridPos,
     indexToGridPos,
@@ -15,16 +29,13 @@ window.createNew = createNew;
 window.updateCanvas = updateCanvas;
 window.downloadFile = downloadFile;
 
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-const canvasBoundingRect = canvas.getBoundingClientRect();
-
 const fileInput = document.getElementById("fileInput");
 const levelNameInput = document.getElementById("levelNameInput");
 const gameModeSelect = document.getElementById("gameModeSelect");
+const fileSizeLabel = document.getElementById("fileSizeLabel");
 const gridCheckbox = document.getElementById("gridCheckbox");
-const gridSizeRadio2 = document.getElementById("gridSizeRadio2");
-const gridSizeRadio3 = document.getElementById("gridSizeRadio3");
+const gridSizeHalfRadio = document.getElementById("gridSizeRadioHalf");
+const gridSizeQuarterRadio = document.getElementById("gridSizeRadioQuarter");
 const centerLinesCheckbox = document.getElementById("centerLinesCheckbox");
 const doorSwitchLinesCheckbox = document.getElementById("showExitDoorSwitch");
 const tileModeRadio = document.getElementById("tileModeRadio");
@@ -33,25 +44,15 @@ const tileSelect = document.getElementById("tileSelect");
 const objectSelect = document.getElementById("objectSelect");
 const objectDirectionSelect = document.getElementById("objectDirectionSelect");
 
-const canvasWidth = 1512;
-const canvasHeight = 828;
-export const gridWidth = 42;
-const gridHeight = 23;
-export const tileSize = canvasWidth / gridWidth;
-export const quarterTileSize = tileSize / 4;
 
-const tileSprites = new Image;
-tileSprites.src = "tiles.png";
-const objectSprites = new Image;
-objectSprites.src = "objects.png";
 
 let mouseX = 0;
 let mouseY = 0;
 let mouseButton = 0;
 let mouseDownIntervalId;
-let tileArray = [];
+
 let hexArray = [];
-let tileSpritesIndices = [null, 6, 12, 14, 15, 16, 17, 18, 19, 20, 0, 1, 2, 3, 4, 5, 21, 26, 22, 27, 24, 23, 25, 28, 31, 29, 7, 8, 9, 10, 13, 11, 30, 32];
+let tileArray = [];
 let objectCounts = [];
 let objectData = [];
 
@@ -72,11 +73,13 @@ canvas.addEventListener("mousedown", MouseEvent => {
     mouseDownIntervalId = setInterval(mouseDown);
 });
 
-canvas.addEventListener("mouseup", () => clearInterval(mouseDownIntervalId));
+canvas.addEventListener("mouseup", () => {
+    clearInterval(mouseDownIntervalId);
+});
 
 canvas.addEventListener("mousemove", MouseEvent => {
-	mouseX = MouseEvent.clientX - canvasBoundingRect.left;
-	mouseY = MouseEvent.clientY - canvasBoundingRect.top;
+	mouseX = MouseEvent.clientX - rect.left;
+	mouseY = MouseEvent.clientY - rect.top;
 });
 
 document.addEventListener("keydown", event => keyDown(event.code));
@@ -121,8 +124,20 @@ function keyDown(keyCode) {
     }
 }
 
+function loadFile(arrayBuffer) {
+    hexArray = intArrayToHexArray(new Uint8Array(arrayBuffer));
+    levelNameInput.value = getLevelName();
+    gameModeSelect.value = getGameMode();
+    fileSizeLabel.innerHTML = "File size: " + h2d(getFileSize()) + "B";
+    loadObjectCounts();
+    loadObjectData();
+    loadTiles();
+    updateCanvas();
+}
+
 function downloadFile() {
-    if (hexArray.length > 0) {
+    let hexArray = genNewHexArray();
+    if (hexArray.length > 0 && isCanvasInUse()) {
         let arrayBuffer = new ArrayBuffer(hexArray.length);
         let uInt8Array = new Uint8Array(arrayBuffer);
         for (let i = 0; i < hexArray.length; i++) {
@@ -131,32 +146,142 @@ function downloadFile() {
         let link = document.createElement("a");
         let file = new Blob([uInt8Array], {type: "application/octet-stream"});
         link.href = URL.createObjectURL(file);
-        link.download = "test";
+        link.download = levelNameInput.value;
         link.click();
         URL.revokeObjectURL(link.href);
+    } else {
+        alert("Computer says no...");
     }
 }
 
-// initialization
-
-function initTileArray() {
-    tileArray = [];
-    for (let y = 0; y < 23; y++) {
-        let tmp = [];
-        for (let x = 0; x < gridWidth; x++) {
-            tmp.push(0);
+function createNew() {
+    let reset = true;
+    if (isCanvasInUse() || objectData.length > 0) {
+        reset = confirm("Hol' up! This will erase everything on the canvas. Are you sure you want to continue?");
+    }
+    if (reset) {
+        fileInput.value = null;
+        tileArray = [];
+        for (let y = 0; y < 23; y++) {
+            let tmp = [];
+            for (let x = 0; x < 42; x++) {
+                tmp.push("00");
+            }
+            tileArray.push(tmp);
         }
-        tileArray.push(tmp);
+        levelNameInput.value = "Untitled-1";
+        gameModeSelect.value = "04";
+        tileSelect.value = "01";
+        fileSizeLabel.innerHTML = "File size: unknown";
+        objectCounts = [];
+        objectData = [];
+        updateCanvas();
     }
 }
 
-// file reading/writing
+function updateCanvas() {
+    clearCanvas();
+    if (gridCheckbox.checked) {
+        if (gridSizeHalfRadio.checked) {
+            drawGrid(1);
+        } else if (gridSizeQuarterRadio.checked) {
+            drawGrid(2);
+        } else {
+            drawGrid(0);
+        }
+    }
+    drawObjects(objectData);
+    drawTiles(tileArray);
+    if (doorSwitchLinesCheckbox.checked) {
+        drawDoorSwitchLines();
+    }
+    if (centerLinesCheckbox.checked) {
+        drawCenterLines();
+    }
+}
+
+// getting stuff from hexArray
+
+function getFileSize() {
+    return hexArray.slice(4, 8).reverse().join("");
+}
+
+function getGameMode() {
+    return hexArray[h2d("0c")];
+}
+
+function getLevelName() {
+    let levelName = "";
+    for (let i = h2d("26"); i <= h2d("a5"); i++) {
+        if (hexArray[i] != "00") {
+            levelName += h2a(hexArray[i]);
+        }
+    }
+    return levelName;
+}
+
+function getTileData() {
+    return hexArray.slice(h2d("b8"), h2d("47e"));
+}
+
+// getting stuff from hexArray AND setting global variables
+
+function loadTiles() {
+    let gridPos;
+    for (let i = h2d("b8"); i <= h2d("47d"); i++) {
+        gridPos = indexToGridPos(i - h2d("b8"));
+        tileArray[gridPos[1]][gridPos[0]] = hexArray[i];
+    }
+}
+
+// note: doesn't seem to count locked and trap door switches
+function loadObjectCounts() {
+    objectCounts = [];
+    for (let i = h2d("47e"); i <= h2d("4cd"); i += 2) {
+        let hex = hexArray[i + 1] + hexArray[i];
+        let decimal = h2d(hex);
+        objectCounts.push(decimal);
+    }
+}
+
+function loadObjectData() {
+    objectData = [];
+    let fileSize = getFileSize();
+    for (let i = h2d("4ce"); i < h2d(fileSize); i += 5) {
+        let object = [hexArray[i], hexArray[i + 1], hexArray[i + 2], hexArray[i + 3], hexArray[i + 4]];
+        objectData.push(object);
+    }
+}
+
+// reading/modifying global variables
+
+function removeAllObjectsAt(objectX, objectY) {
+    for (let i = 0; i < objectData.length; i++) {
+        if (objectData[i][1] == d2h(objectX) && objectData[i][2] == d2h(objectY)) {
+            objectData.splice(i, 1);
+            i--;
+        }
+    }
+}
+
+export function getObjectsOfId(id) {
+    let objects = [];
+    for (let i = 0; i < objectData.length; i++) {
+        let object = objectData[i];
+        if (object[0] == id) {
+            objects.push(object);
+        }
+    }
+    return objects;
+}
 
 function isCanvasInUse() {
-    for (let y = 0; y < 23; y++) {
-        for (let x = 0; x < gridWidth; x++) {
-            if (tileArray[y][x] != "00") {
-                return true;
+    if (tileArray.length > 0) {
+        for (let y = 0; y < 23; y++) {
+            for (let x = 0; x < 42; x++) {
+                if (tileArray[y][x] != "00") {
+                    return true;
+                }
             }
         }
     }
@@ -172,199 +297,110 @@ function isObjectInObjectData(object) {
     return false;
 }
 
-function createNew() {
-    let reset = true;
-    if (isCanvasInUse() || objectData.length > 0) {
-        reset = confirm("Hol' up! This will erase everything on the canvas. Are you sure you want to continue?");
+// formatting global variables (for new hexArray)
+
+function tileArrayToHexArray(tileArray) {
+    let hexArray = [];
+    for (let i = 0; i < tileArray.length; i++) {
+        hexArray = hexArray.concat(tileArray[i]);
     }
-    if (reset) {
-        fileInput.value = null;
-        initTileArray();
-        levelNameInput.value = "Untitled-1";
-        gameModeSelect.value = "04";
-        tileSelect.value = "01";
-        fileSizeLabel.innerHTML = "File size: unknown";
-        objectCounts = [];
-        objectData = [];
-        updateCanvas();
-    }
+    return hexArray;
 }
 
-function loadFile(arrayBuffer) {
+function orderObjectData() {
+    let orderedObjectData = [];
+    for (let i = 0; i < 29; i++) {
+        for (let j = 0; j < objectData.length; j++) {
+            if (objectData[j][0] == d2h(i)) {
+                orderedObjectData.push(objectData[j]);
+            }
+        }
+    }
+    objectData = orderedObjectData;
+}
+
+function genMetaData() {
+    let metaData = [];
+    let levelNameHArray = a2h(levelNameInput.value);
+    for (let i = 0; i < h2d("b8"); i++) {
+        if (i == 0) {
+            metaData.push("06");
+        } else if ((8 <= i && i <= 11) || (20 <= i && i <= 23)) {
+            metaData.push("ff");
+        } else if (i == 12) {
+            metaData.push(gameModeSelect.value);
+        } else if (i == 16) {
+            metaData.push("25");
+        } else {
+            metaData.push("00");
+        }
+    }
+    for (let i = 0; i < levelNameHArray.length; i++) {
+        metaData[h2d("26") + i] = levelNameHArray[i];
+    }
+    return metaData;
+}
+
+function genObjectCounts() {
+    let objectCounts = [];
+    for (let i = 0; i < 80; i++) {
+        objectCounts.push("00");
+    }
+    for (let i = 0; i < 29; i++) {
+        let objectId = d2h(i);
+        let objectCount = 0;
+        for (let j = 0; j < objectData.length; j++) {
+            if (objectData[j][0] == objectId) {
+                objectCount++;
+            }
+        }
+        objectCount = formatHex(d2h(objectCount), 2, true);
+        objectCounts[i * 2] = objectCount[0];
+        objectCounts[(i * 2) + 1] = objectCount[1];
+    }
+    return objectCounts;
+}
+
+function genNewHexArray() {
     console.clear();
-    hexArray = intArrayToHexArray(new Uint8Array(arrayBuffer));
-    printArrayFormatted("hexArray:", hexArray);
-    printArrayFormatted("meta data:", getMetaData());
-    levelNameInput.value = getLevelName();
-    gameModeSelect.value = getGameMode();
-    fileSizeLabel.innerHTML = "File size: " + h2d(getFileSize()) + "B";
-    loadObjectCounts();
-    loadObjectData();
-    loadTiles();
-    updateCanvas();
-}
-
-function getLevelName() {
-    let levelName = "";
-    for (let i = h2d("26"); i <= h2d("a5"); i++) {
-        if (hexArray[i] != "00") {
-            levelName += h2a(hexArray[i]);
-        }
-    }
-    return levelName;
-}
-
-function getMetaData() {
-    return hexArray.slice(h2d("00"), h2d("a6"));
-}
-
-function loadTiles() {
-    initTileArray();
-    let gridPos;
-    for (let i = h2d("b8"); i <= h2d("47d"); i++) {
-        gridPos = indexToGridPos(i - h2d("b8"));
-        if (hexArray[i] != "00") {
-            tileArray[gridPos[1]][gridPos[0]] = hexArray[i];
-        }
-    }
-}
-
-// note: doesn't seem to count locked and trap door switches?
-function loadObjectCounts() {
-    objectCounts = [];
-    for (let i = h2d("47e"); i <= h2d("4cd"); i += 2) {
-        let hex = hexArray[i + 1] + hexArray[i];
-        let decimal = h2d(hex);
-        objectCounts.push(decimal);
-    }
-}
-
-function getFileSize() {
-    return hexArray.slice(4, 8).reverse().join("");
-}
-
-function loadObjectData() {
-    objectData = [];
-    let fileSize = getFileSize();
-    for (let i = h2d("4ce"); i < h2d(fileSize); i += 5) {
-        let object = [hexArray[i], hexArray[i + 1], hexArray[i + 2], hexArray[i + 3], hexArray[i + 4]];
-        objectData.push(object);
-    }
-}
-
-function getGameMode() {
-    return hexArray[h2d("0c")];
-}
-
-// draw to canvas
-
-function updateCanvas() {
-    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-    drawGrid();
-    drawObjects();
-    drawTiles();
-    if (doorSwitchLinesCheckbox.checked) {
-        drawDoorSwitchLines();
-    }
-    if (centerLinesCheckbox.checked) {
-        drawCenterLines();
-    }
-}
-
-function drawGrid() {
-    if (gridCheckbox.checked) {
-        if (gridSizeRadio2.checked || gridSizeRadio3.checked) {
-            drawFeintGrid(2);
-            if (gridSizeRadio3.checked) {
-                drawFeintGrid(4);
-                drawFeintGrid(4 / 3);
-            }
-        }
-        ctx.fillStyle = "#a3aa9d";
-        for (let x = tileSize - 1; x < canvasWidth - 1; x += tileSize) {
-            ctx.fillRect(x, 0, 2, canvasHeight);
-        }
-        for (let y = tileSize - 1; y < canvasHeight - 1; y += tileSize) {
-            ctx.fillRect(0, y, canvasWidth, 2);
-        }
-    }
-}
-
-function drawFeintGrid(offset) {
-    ctx.fillStyle = "#99a093";
-    for (let x = tileSize / offset; x < canvasWidth; x += tileSize) {
-        ctx.fillRect(x, 0, 1, canvasHeight);
-    }
-    for (let y = tileSize / offset; y < canvasHeight; y += tileSize) {
-        ctx.fillRect(0, y, canvasWidth, 1);
-    }
-}
-
-function drawCenterLines() {
-    ctx.fillStyle = "#00ffff";
-    ctx.fillRect(0, canvasHeight / 2, canvasWidth, 2);
-    ctx.fillRect(canvasWidth / 2, 0, 2, canvasHeight);
-}
-
-function drawObjects() {
+    orderObjectData();
+    let metaData = genMetaData();
+    printArrayFormatted("meta data:", metaData);
+    let tileData = tileArrayToHexArray(tileArray);
+    printArrayFormatted("tile data:", tileData);
+    let objectCounts = genObjectCounts();
+    printArrayFormatted("object counts:", objectCounts);
+    let newObjectData = [];
     for (let i = 0; i < objectData.length; i++) {
-        let object = objectData[i];
-        let spriteY = h2d(object[0]);
-        let spriteX = h2d(object[3]);
-        let gridX = (h2d(object[1]) - 4) * quarterTileSize;
-        let gridY = (h2d(object[2]) - 4) * quarterTileSize;
-        ctx.drawImage(objectSprites, spriteX * 44, spriteY * 44, 44, 44, gridX - (tileSize / 2), gridY - (tileSize / 2), tileSize, tileSize);
+        newObjectData = newObjectData.concat(objectData[i]);
     }
+    printArrayFormatted("object data:", newObjectData);
+    let newHexArray = metaData.concat(tileData).concat(objectCounts).concat(newObjectData);
+    let fileSize = formatHex(d2h(newHexArray.length), 2, true);
+    printArrayFormatted("file size:", fileSize);
+    newHexArray[h2d("04")] = fileSize[0];
+    newHexArray[h2d("05")] = fileSize[1];
+    printArrayFormatted("new hex array:", newHexArray);
+    return newHexArray;
 }
 
-function drawTiles() {
-    for (let gridY = 0; gridY < gridHeight; gridY++) {
-        for (let gridX = 0; gridX < gridWidth; gridX++) {
-            let tileId = tileArray[gridY][gridX];
-            if (tileId != "00") {
-                let spriteIndex = tileSpritesIndices[h2d(tileId)];
-                ctx.drawImage(tileSprites, spriteIndex * 44, 0, 44, 44, gridX * tileSize, gridY * tileSize, tileSize, tileSize);
-            }
-        }
+function formatHex(hex, nBytes, bigEndian) {
+    let newHex = "";
+    let newHexArray = [];
+    if (hex.length % 2 == 1) {
+        newHex += "0";
     }
+    for (let i = hex.length; i < nBytes * 2; i += 2) {
+        newHex = "00" + newHex;
+    }
+    newHex += hex;
+    for (let i = 0; i < newHex.length; i += 2) {
+        newHexArray.push(newHex[i] + newHex[i+1]);
+    }
+    if (bigEndian) {
+        newHexArray = newHexArray.reverse();
+    }
+    return newHexArray;
 }
 
-function getObjectsOfId(id) {
-    let objects = [];
-    for (let i = 0; i < objectData.length; i++) {
-        let object = objectData[i];
-        if (object[0] == id) {
-            objects.push(object);
-        }
-    }
-    return objects;
-}
-
-function drawDoorSwitchLines() {
-    let ids = ["03", "04", "06", "07", "08", "09"];
-    ctx.strokeStyle = "#ffffff";
-    for (let j = 0; j < ids.length; j += 2) {
-        let exits = getObjectsOfId(ids[j]);
-        let exitSwitches = getObjectsOfId(ids[j + 1]);
-        for (let i = 0; i < exits.length; i++) {
-            let exitPos = objectCoordsToPixelPos([exits[i][1], exits[i][2]]);
-            let exitSwitchPos = objectCoordsToPixelPos([exitSwitches[i][1], exitSwitches[i][2]]);
-            ctx.beginPath();
-            ctx.moveTo(exitPos[0], exitPos[1]);
-            ctx.lineTo(exitSwitchPos[0], exitSwitchPos[1]);
-            ctx.stroke();
-        }
-    }
-}
-
-function removeAllObjectsAt(objectX, objectY) {
-    for (let i = 0; i < objectData.length; i++) {
-        if (objectData[i][1] == d2h(objectX) && objectData[i][2] == d2h(objectY)) {
-            objectData.splice(i, 1);
-            i--;
-        }
-    }
-}
-
-initTileArray();
-drawGrid();
+createNew();
