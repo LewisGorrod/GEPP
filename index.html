@@ -7,7 +7,7 @@
             <canvas id="canvas" width=1512 height=828></canvas>
         </div>
         <div id="controls-div">
-            <h1>GlitchEdit++ v0.2.0</h1>
+            <h1>GlitchEdit++ v0.2.1</h1>
             <p class="subheading">A web-based level editor for N++.</p>
             <fieldset>
                 <legend>Input</legend>
@@ -24,6 +24,7 @@
                     <option value="04" selected>unset</option>
                 </select>
                 <br><label id="fileSizeLabel">File size: unknown</label>
+                <br><input type="button" value="Preview" onclick="inputPreview()" hidden>
             </fieldset>
             <fieldset>
                 <legend>Editor</legend>
@@ -42,10 +43,15 @@
                 <!-- door-switch lines -->
                 <br><input type="checkbox" id="showExitDoorSwitch" checked onclick="updateCanvas()">Door-switch lines</input>
                 <!-- auto-place doors -->
-                <br><input type="checkbox" id="autoDoorCheckbox">Auto-door</input>
+                <!-- <br><input type="checkbox" id="autoDoorCheckbox">Auto-door</input> -->
                 <!-- auto-place switches -->
-                <br><input type="checkbox" id="autoSwitchCheckbox">Auto-switch</input>
-                
+                <!-- <br><input type="checkbox" id="autoSwitchCheckbox">Auto-switch</input> -->
+                <br><label>Top layer: </label>
+                <input type="radio" id="tilesOntopRadio" name="tilesObjectsOntop" value="tilesOntop" checked onclick="updateCanvas()">
+                <label for="tilesObjectsOntop">Tiles</label>
+                <input type="radio" id="objectsOntopRadio" name="tilesObjectsOntop" value="objectsOntop" onclick="updateCanvas()">
+                <label for="tilesObjectsOntop">Objects</label>
+
             </fieldset>
             <fieldset>
                 <legend>Draw</legend>
@@ -93,6 +99,10 @@
                         <option value="21">Raised slope (vertical, ne)</option>
                         <option value="1f">Raised slope (vertical, sw)</option>
                         <option value="1e">Raised slope (vertical, se)</option>
+                        <option value="22">One-way (n)</option>
+                        <option value="23">One-way (e)</option>
+                        <option value="24">One-way (s)</option>
+                        <option value="25">One-way (w)</option>
                     </select>
                 </fieldset>
                 <!-- entity -->
@@ -154,20 +164,18 @@
             </fieldset>
             <fieldset>
                 <legend>Output</legend>
+                <input type="button" value="Preview" onclick="outputPreview()" hidden>
                 <input type="button" value="Save" onclick="downloadFile()">
                 <br><label>Warning: use files created by this tool at your own risk!</label>
             </fieldset>
             <fieldset>
-                <legend>Keyboard Shortcuts</legend>
+                <legend>Hotkeys</legend>
                 <label>Tile/object mode: space</label>
                 <br><label>Object direction: q,w,e,a,s,d,z,c</label>
-                <br><label>Grid: g</label>
+                <br><label>Grid toggle: g</label>
             </fieldset>
-            <!-- <fieldset>
-                <legend>Preview</legend>
-                <textarea name="previewTextArea" id="previewTextArea" cols="47" rows="25"></textarea>
-            </fieldset> -->
             <div id="footer">
+                <a href="help.html" hidden>How to use</a>
                 <br><a href="version.html">Version history</a>
                 <p>Made in pure Javascript, with &#x1F49B;</p>
             </div>

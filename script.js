@@ -1,6 +1,5 @@
 
 const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
 const rect = canvas.getBoundingClientRect();
 
 import {
@@ -20,14 +19,16 @@ import {
     intArrayToHexArray,
     toGridPos,
     indexToGridPos,
-    objectCoordsToPixelPos,
     toObjectCoords,
-    printArrayFormatted
+    printArrayFormatted,
+    formatHex
 } from "./utils.js";
 
 window.createNew = createNew;
 window.updateCanvas = updateCanvas;
 window.downloadFile = downloadFile;
+window.inputPreview = inputPreview;
+window.outputPreview = outputPreview;
 
 const fileInput = document.getElementById("fileInput");
 const levelNameInput = document.getElementById("levelNameInput");
@@ -43,8 +44,8 @@ const objectModeRadio = document.getElementById("objectModeRadio");
 const tileSelect = document.getElementById("tileSelect");
 const objectSelect = document.getElementById("objectSelect");
 const objectDirectionSelect = document.getElementById("objectDirectionSelect");
-
-
+const droneModeSelect = document.getElementById("droneModeSelect");
+const tilesOntopRadio = document.getElementById("tilesOntopRadio");
 
 let mouseX = 0;
 let mouseY = 0;
@@ -53,7 +54,6 @@ let mouseDownIntervalId;
 
 let hexArray = [];
 let tileArray = [];
-let objectCounts = [];
 let objectData = [];
 
 fileInput.addEventListener("change", event => {
@@ -96,6 +96,9 @@ function mouseDown() {
         let objectCoords = toObjectCoords(mouseX, mouseY);
         if (mouseButton == 0) {
             let object = [objectSelect.value, d2h(objectCoords[0]), d2h(objectCoords[1]), objectDirectionSelect.value, "00"];
+            if (["0c", "0d", "0e", "0f", "17", "1a".includes(object[0])]) {
+                object[4] = droneModeSelect.value;
+            }
             if (!isObjectInObjectData(object)) {
                 objectData.push(object);
             }
@@ -107,9 +110,9 @@ function mouseDown() {
 }
 
 function keyDown(keyCode) {
-    let keyCodes = ["KeyD", "KeyC", "KeyS", "KeyZ", "KeyA", "KeyQ", "KeyW", "KeyE"];
-    if (keyCodes.includes(keyCode)) {
-        objectDirectionSelect.value = d2h(keyCodes.indexOf(keyCode));
+    let objectDirectionkeyCodes = ["KeyD", "KeyC", "KeyS", "KeyZ", "KeyA", "KeyQ", "KeyW", "KeyE"];
+    if (objectDirectionkeyCodes.includes(keyCode)) {
+        objectDirectionSelect.value = d2h(objectDirectionkeyCodes.indexOf(keyCode));
     } else if (keyCode == "Space") {
         if (objectModeRadio.checked) {
             objectModeRadio.checked = false;
@@ -129,14 +132,29 @@ function loadFile(arrayBuffer) {
     levelNameInput.value = getLevelName();
     gameModeSelect.value = getGameMode();
     fileSizeLabel.innerHTML = "File size: " + h2d(getFileSize()) + "B";
-    loadObjectCounts();
     loadObjectData();
     loadTiles();
     updateCanvas();
 }
 
+function inputPreview() {
+    console.clear();
+    printArrayFormatted("tile data:", tileArray);
+    console.log("object data:")
+    for (let i = 0; i < objectData.length; i++) {
+        console.log(objectData[i]);
+    }
+    console.log(orderObjectData());
+}
+
+function outputPreview() {
+    console.clear()
+    printArrayFormatted("input hex array (" + hexArray.length + "):", hexArray);
+    let newHexArray = genNewHexArray(true);
+}
+
 function downloadFile() {
-    let hexArray = genNewHexArray();
+    let hexArray = genNewHexArray(false);
     if (hexArray.length > 0 && isCanvasInUse()) {
         let arrayBuffer = new ArrayBuffer(hexArray.length);
         let uInt8Array = new Uint8Array(arrayBuffer);
@@ -173,7 +191,7 @@ function createNew() {
         gameModeSelect.value = "04";
         tileSelect.value = "01";
         fileSizeLabel.innerHTML = "File size: unknown";
-        objectCounts = [];
+        tilesOntopRadio.checked = true;
         objectData = [];
         updateCanvas();
     }
@@ -190,8 +208,13 @@ function updateCanvas() {
             drawGrid(0);
         }
     }
-    drawObjects(objectData);
-    drawTiles(tileArray);
+    if (tilesOntopRadio.checked) {
+        drawObjects(objectData);
+        drawTiles(tileArray);
+    } else {
+        drawTiles(tileArray);
+        drawObjects(objectData);
+    }
     if (doorSwitchLinesCheckbox.checked) {
         drawDoorSwitchLines();
     }
@@ -220,10 +243,6 @@ function getLevelName() {
     return levelName;
 }
 
-function getTileData() {
-    return hexArray.slice(h2d("b8"), h2d("47e"));
-}
-
 // getting stuff from hexArray AND setting global variables
 
 function loadTiles() {
@@ -231,16 +250,6 @@ function loadTiles() {
     for (let i = h2d("b8"); i <= h2d("47d"); i++) {
         gridPos = indexToGridPos(i - h2d("b8"));
         tileArray[gridPos[1]][gridPos[0]] = hexArray[i];
-    }
-}
-
-// note: doesn't seem to count locked and trap door switches
-function loadObjectCounts() {
-    objectCounts = [];
-    for (let i = h2d("47e"); i <= h2d("4cd"); i += 2) {
-        let hex = hexArray[i + 1] + hexArray[i];
-        let decimal = h2d(hex);
-        objectCounts.push(decimal);
     }
 }
 
@@ -309,19 +318,34 @@ function tileArrayToHexArray(tileArray) {
 
 function orderObjectData() {
     let orderedObjectData = [];
+    let newObjectData = [];
     for (let i = 0; i < 29; i++) {
-        for (let j = 0; j < objectData.length; j++) {
-            if (objectData[j][0] == d2h(i)) {
-                orderedObjectData.push(objectData[j]);
-            }
-        }
+        orderedObjectData.push([]);
     }
-    objectData = orderedObjectData;
+    for (let i = 0; i < objectData.length; i++) {
+        let object = objectData[i];
+        orderedObjectData[h2d(object[0])].push(object);
+    }
+    for (let i = 0; i < 6; i++) {
+        newObjectData = newObjectData.concat(orderedObjectData[i]);
+    }
+    for (let i = 0; i < orderedObjectData[6].length; i++) {
+        newObjectData.push(orderedObjectData[6][i]);
+        newObjectData.push(orderedObjectData[7][i]);
+    }
+    for (let i = 0; i < orderedObjectData[8].length; i++) {
+        newObjectData.push(orderedObjectData[8][i]);
+        newObjectData.push(orderedObjectData[9][i]);
+    }
+    for (let i = 10; i < 29; i++) {
+        newObjectData = newObjectData.concat(orderedObjectData[i]);
+    }
+    objectData = newObjectData;
 }
 
 function genMetaData() {
     let metaData = [];
-    let levelNameHArray = a2h(levelNameInput.value);
+    let levelNameHexArray = a2h(levelNameInput.value);
     for (let i = 0; i < h2d("b8"); i++) {
         if (i == 0) {
             metaData.push("06");
@@ -335,12 +359,13 @@ function genMetaData() {
             metaData.push("00");
         }
     }
-    for (let i = 0; i < levelNameHArray.length; i++) {
-        metaData[h2d("26") + i] = levelNameHArray[i];
+    for (let i = 0; i < levelNameHexArray.length; i++) {
+        metaData[h2d("26") + i] = levelNameHexArray[i];
     }
     return metaData;
 }
 
+// note: game files don't seem to count locked and trap door switches
 function genObjectCounts() {
     let objectCounts = [];
     for (let i = 0; i < 80; i++) {
@@ -349,9 +374,11 @@ function genObjectCounts() {
     for (let i = 0; i < 29; i++) {
         let objectId = d2h(i);
         let objectCount = 0;
-        for (let j = 0; j < objectData.length; j++) {
-            if (objectData[j][0] == objectId) {
-                objectCount++;
+        if (!(objectId == "07" || objectId == "09")) {
+            for (let j = 0; j < objectData.length; j++) {
+                if (objectData[j][0] == objectId) {
+                    objectCount++;
+                }
             }
         }
         objectCount = formatHex(d2h(objectCount), 2, true);
@@ -361,44 +388,26 @@ function genObjectCounts() {
     return objectCounts;
 }
 
-function genNewHexArray() {
-    console.clear();
+function genNewHexArray(preview) {
     orderObjectData();
     let metaData = genMetaData();
-    printArrayFormatted("meta data:", metaData);
     let tileData = tileArrayToHexArray(tileArray);
-    printArrayFormatted("tile data:", tileData);
     let objectCounts = genObjectCounts();
-    printArrayFormatted("object counts:", objectCounts);
     let newObjectData = [];
     for (let i = 0; i < objectData.length; i++) {
         newObjectData = newObjectData.concat(objectData[i]);
     }
-    printArrayFormatted("object data:", newObjectData);
     let newHexArray = metaData.concat(tileData).concat(objectCounts).concat(newObjectData);
     let fileSize = formatHex(d2h(newHexArray.length), 2, true);
-    printArrayFormatted("file size:", fileSize);
     newHexArray[h2d("04")] = fileSize[0];
     newHexArray[h2d("05")] = fileSize[1];
-    printArrayFormatted("new hex array:", newHexArray);
-    return newHexArray;
-}
-
-function formatHex(hex, nBytes, bigEndian) {
-    let newHex = "";
-    let newHexArray = [];
-    if (hex.length % 2 == 1) {
-        newHex += "0";
-    }
-    for (let i = hex.length; i < nBytes * 2; i += 2) {
-        newHex = "00" + newHex;
-    }
-    newHex += hex;
-    for (let i = 0; i < newHex.length; i += 2) {
-        newHexArray.push(newHex[i] + newHex[i+1]);
-    }
-    if (bigEndian) {
-        newHexArray = newHexArray.reverse();
+    if (preview) {
+        printArrayFormatted("meta data (" + metaData.length + "):", metaData);
+        printArrayFormatted("tile data (" + tileData.length + "):", tileData);
+        printArrayFormatted("object counts (" + objectCounts.length + "):", objectCounts);
+        printArrayFormatted("object data (" + newObjectData.length + "):", newObjectData);
+        printArrayFormatted("file size (" + fileSize.length + "):", fileSize);
+        printArrayFormatted("output hex array (" + newHexArray.length + "):", newHexArray);
     }
     return newHexArray;
 }

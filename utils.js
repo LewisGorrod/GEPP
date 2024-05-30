@@ -62,3 +62,22 @@ export function printArrayFormatted(s, array) {
     }
     console.log(s);
 }
+
+export function formatHex(hex, nBytes, bigEndian) {
+    let newHex = "";
+    let newHexArray = [];
+    if (hex.length % 2 == 1) {
+        newHex += "0";
+    }
+    newHex += hex;
+    while (newHex.length / 2 < nBytes) {
+        newHex = "00" + newHex;
+    }
+    for (let i = 0; i < newHex.length; i += 2) {
+        newHexArray.push(newHex[i] + newHex[i+1]);
+    }
+    if (bigEndian) {
+        newHexArray = newHexArray.reverse();
+    }
+    return newHexArray;
+}

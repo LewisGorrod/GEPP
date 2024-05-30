@@ -13,7 +13,7 @@ import {
 } from "./utils.js";
 
 const tileSprites = new Image;
-const tileSpritesIndices = [null, 6, 12, 14, 15, 16, 17, 18, 19, 20, 0, 1, 2, 3, 4, 5, 21, 26, 22, 27, 24, 23, 25, 28, 31, 29, 7, 8, 9, 10, 13, 11, 30, 32];
+const tileSpritesIndices = [null, 6, 12, 14, 15, 16, 17, 18, 19, 20, 0, 1, 2, 3, 4, 5, 21, 26, 22, 27, 24, 23, 25, 28, 31, 29, 7, 8, 9, 10, 13, 11, 30, 32, 33, 34, 35, 36];
 const objectSprites = new Image;
 export const tileSize = canvas.width / 42;
 export const quarterTileSize = tileSize / 4;
