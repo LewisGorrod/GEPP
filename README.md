@@ -15,6 +15,7 @@ Site: https://lewisgorrod.github.io/GEPP/
 - Show drone directions and modes
 - 'Out of bounds' editable area (especially below map) - maybe arrow buttons which 'pan' the content around?
 - Custom glitched tiles/entities
+- Entity stack size
 #### Glitches
 - Tiles 26-29? 44?
 - Go through slomac's glitches level
